@@ -42,8 +42,7 @@ void setup()
 {
   // Set up button, pullup opposite to active state
   // pinMode(pin, activeState ? INPUT_PULLDOWN : INPUT_PULLUP);
-attachInterrupt(digitalPinToInterrupt(pinA), pinChange, CHANGE);
-attachInterrupt(digitalPinToInterrupt(pinB), pinChange, CHANGE);
+
   usb_hid.setPollInterval(2);
   usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
   // Notes: following commented-out functions has no affect on ESP32
@@ -65,15 +64,19 @@ attachInterrupt(digitalPinToInterrupt(pinB), pinChange, CHANGE);
   while( !USBDevice.mounted() ) delay(1);
 
   Serial.println("Adafruit TinyUSB HID Mouse example");
+  attachInterrupt(digitalPinToInterrupt(pinA), pinChange, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(pinB), pinChange, CHANGE);
+  interrupts();
 }
 
 void loop()
 {
-  // poll gpio once each 10 ms
+  // poll gpio once each 1000 µs
+  // delayMicroseconds(1000);
   delay(1);
-
+  // pinChange();
   // Whether button is pressed
-  bool any_change = (delta != 0);
+  bool any_change = (abs(delta) != 0);
   // nothing to do if button is not pressed
   if (!any_change) return;
 
@@ -88,7 +91,7 @@ void loop()
 
   if ( usb_hid.ready() )
   {
- usb_hid.mouseScroll(0, delta/2,0);
+ usb_hid.mouseScroll(0, delta,0);
     delta = 0 ; 
   }
   // rotState = new_rotState; 
@@ -99,10 +102,12 @@ void pinChange(){
   int new_A = digitalRead(pinA);
   int new_B = digitalRead(pinB);
   int new_rotState = new_A + 2 * new_B;
+  if(new_rotState != rotState){
   int isFwd = (rotState == 3 && new_rotState == 1) 
       || (rotState ==1 && new_rotState ==0)
       || (rotState==0 && new_rotState==2 ) || (rotState==2 && new_rotState==3) ;
     if (isFwd){delta +=1;}else{delta -=1;};
   rotState= new_rotState;
+}
   return ;
 }
